@@ -1,0 +1,10 @@
+pandas
+numpy
+scikit-learn
+lightgbm
+shap
+fairlearn
+pytest
+matplotlib
+seaborn
+jupyter
