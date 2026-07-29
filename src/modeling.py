@@ -3,15 +3,19 @@ import numpy as np
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score,average_precision_score
+from sklearn.model_selection import cross_val_predict
+
 
 from src.data_processing import clean_raw_data,get_preprocessor
 
-def stratified_cv(df: pd.DataFrame, num_cols: list, cat_cols: list,n_splits=5, verbose: bool=False):
+def stratified_cv(df: pd.DataFrame, num_cols: list, cat_cols: list,n_splits=5, return_oof: bool = False, verbose: bool=False):
     X = df[num_cols + cat_cols]
     y = df["loan_status"]
 
     skf = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
     roc_aucs, ginis, pr_aucs = [], [], []
+
+    oof_proba = np.zeros(len(df)) if return_oof else None
 
     for fold, (train_index, test_index) in enumerate(skf.split(X, y)):
         X_train, X_test = X.iloc[train_index], X.iloc[test_index]
@@ -26,6 +30,9 @@ def stratified_cv(df: pd.DataFrame, num_cols: list, cat_cols: list,n_splits=5, v
 
         y_pred_prob = model.predict_proba(X_test_trans)[:,1]
 
+        if return_oof:
+            oof_proba[test_index] = y_pred_prob
+
         roc_auc = roc_auc_score(y_test, y_pred_prob)
         pr_auc = average_precision_score(y_test, y_pred_prob)
         gini = 2*roc_auc -1
@@ -37,11 +44,17 @@ def stratified_cv(df: pd.DataFrame, num_cols: list, cat_cols: list,n_splits=5, v
         if verbose:
             print(f"Fold {fold}: ROC-AUC = {roc_auc:.4f} | Gini = {gini:.4f} | PR-AUC = {pr_auc:.4f}")
 
-    return {
+    metrics = {
         "mean_roc_auc": np.mean(roc_aucs),
         "mean_gini": np.mean(ginis),
         "mean_pr_auc": np.mean(pr_aucs)
     }
+
+    if return_oof:
+        oof_series = pd.Series(oof_proba, index=df.index, name="oof_proba")
+        return metrics, oof_series
+
+    return metrics
 
 def train_final_model(df: pd.DataFrame, num_cols: list, cat_cols: list):
     X = df[num_cols + cat_cols]
@@ -88,3 +101,5 @@ if __name__ == "__main__":
     print("\nTraining final production model (Model B) on 100% of dataset")
     final_model, final_preprocessor = train_final_model(cleaned_data, num_cols_b, cat_cols_b)
     print("Final model training finished.")
+
+
