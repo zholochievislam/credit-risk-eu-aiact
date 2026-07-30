@@ -39,11 +39,15 @@ credit-risk-project/
 │
 ├── src/                   # Production-grade backend modules
 │   ├── data_processing.py # Automated cleaning, handling missing data & OHE
-│   ├── modeling.py        # LightGBM training, OOF predictions & threshold optimization
+│   ├── modeling.py        # LightGBM training, OOF predictions & model persistence (joblib)
 │   ├── explainability.py  # SHAP log-odds conversion & text report generation
-│   └── fairness.py        # Fairlearn audit pipeline, DIR/EOD metrics & per-group thresholds
+│   ├── fairness.py        # Fairlearn audit pipeline, DIR/EOD metrics & per-group thresholds
+│   └── oversight.py       # Human Oversight Gate (Article 14) & decision audit logging (Article 12)
 │
-├── app.py                 # Streamlit web application interface (Day 6)
+├── models/                # Persisted model artifacts (final_model.joblib, thresholds, metrics)
+├── logs/                  # Decision audit trail (decisions_log.jsonl)
+├── tests/                 # pytest suite (data pipeline, leakage checks, applicant routing)
+├── app.py                 # Streamlit web application (Day 6)
 └── README.md              # Project documentation
 ```
  
@@ -101,25 +105,39 @@ credit-risk-project/
  
 ---
  
-## 🖥 Web Application (Streamlit MVP)
-*(Coming in Day 6)*
+### 5. Human Oversight Gate & Audit Trail *(Day 6)*
  
-* An interactive dashboard allowing loan officers to input applicant details, instantly view default risk probabilities (via the group-calibrated thresholds above), and review SHAP-based explanations for every decision.
-* Applicants falling into a mid-risk band will be automatically routed to a **Human Oversight Gate** (Article 14) for manual review rather than fully automated approval/rejection.
+**Challenge:** The EU AI Act (Article 14) requires high-risk automated decisions to include meaningful human oversight rather than fully automated approval/rejection for every case. It also requires a persistent, reviewable record of every decision made (Article 12).
+ 
+**Solution:** Built `src/oversight.py` as a three-way decision router:
+* For each applicant, the model's predicted default probability is compared against **that applicant's group-specific threshold** (from the Day 5 mitigation) with an uncertainty margin (±0.10) around it.
+* **Below the lower bound** → `AUTO_APPROVE`. **Above the upper bound** → `AUTO_REJECT`. **Within the margin** (the model is not confident) → `MANUAL_REVIEW`, routed to a human loan officer.
+* Every decision — inputs, computed risk, threshold used, and outcome — is appended to a JSONL audit log (`logs/decisions_log.jsonl`), creating a persistent, timestamped record for compliance review.
+**Validation:** Tested against multiple synthetic applicant profiles (low-risk, high-risk, borderline, and an extreme "very safe" profile). One interesting finding: two structurally different but both extremely low-risk applicants produced *identical* risk scores to 6 decimal places. Diagnosed empirically (confirming the preprocessed feature vectors were genuinely different, not a bug) — this is expected behavior for gradient-boosted trees, which partition risk space into discrete regions rather than a continuous function; profiles landing in the same "leaf" across all 100 trees receive identical scores. Documented as a known model characteristic rather than treated as a defect.
+ 
+### 6. Interactive Web Application (Streamlit) *(Day 6)*
+ 
+Built `app.py` as a full-stack interface unifying every backend module into a single decision-support tool for loan officers and compliance auditors:
+ 
+* **Sidebar — Applicant Information:** Input form for all applicant attributes. The Loan-to-Income Ratio is *computed automatically* from income and loan amount (rather than entered manually) to eliminate the risk of internally inconsistent inputs being fed to the model.
+* **Tab 1 — Scoring Result:** Displays the computed default probability and the routed decision (`AUTO_APPROVE` / `AUTO_REJECT` / `MANUAL_REVIEW`), color-coded for at-a-glance reading.
+* **Tab 2 — Explainability (Article 13):** Live SHAP waterfall plot and a plain-language explanation of the top risk drivers for the specific applicant just evaluated — the same Adverse Action Notice logic built on Day 4, now served on-demand for any new applicant.
+* **Tab 3 — Compliance & Governance Dashboard:** Built for auditors rather than loan officers. Shows the full decision audit trail (read live from the JSONL log) plus a summary of the Day 5 fairness audit — Disparate Impact Ratio and Equal Opportunity Difference for `person_home_ownership`, shown **before vs. after** threshold mitigation, side by side.
 ---
  
-## 🚀 Upcoming Steps (Days 6 – 7)
+## 🚀 Upcoming Steps (Days 7 – 9)
  
-- [ ] **Day 6 (Streamlit Dashboard):** Integration of backend modules into a full-stack user interface, applying group-specific thresholds and SHAP explanations to live applicant input.
-- [ ] **Day 7 (Model Card & Final Packaging):** Finalizing the formal ML Model Card, performance documentation, and deployment guidelines.
+- [ ] **Day 7:** Polish the Streamlit UI (visual styling, layout refinement); expand the Compliance dashboard with additional fairness visualizations.
+- [ ] **Day 8:** Formal ML **Model Card** — model purpose, training data, performance metrics, fairness audit results, known limitations (data leakage findings, dataset synthetic nature, tree-saturation behavior), and monitoring recommendations. Finalize `requirements.txt` and run the full `pytest` suite.
+- [ ] **Day 9:** Code freeze, final README pass with application screenshots, repository cleanup, and CV/networking follow-up.
 ---
  
 ## 🚀 How to Run the Pipeline Locally
  
 1. Clone the repository:
 ```bash
-git clone https://github.com/zholochievislam/credit-risk-eu-aiact.git
-cd credit-risk-eu-aiact
+git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
+cd YOUR_REPOSITORY_NAME
 ```
  
 2. Set up a virtual environment and install dependencies:
@@ -129,10 +147,19 @@ source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
  
-3. Run the notebooks in order:
+3. Run the notebooks in order (to reproduce the trained model, thresholds, and metrics artifacts under `models/`):
 ```bash
 jupyter notebook notebooks/03_explainability.ipynb
 jupyter notebook notebooks/04_fairness.ipynb
 ```
  
+4. Launch the Streamlit application:
+```bash
+streamlit run app.py
+```
+This opens the app locally at `http://localhost:8501`. *(A public deployment link will be added here once the app is deployed to Streamlit Community Cloud.)*
+ 
 ---
+ 
+*Developed as part of an Advanced End-to-End Machine Learning Engineering Portfolio.*
+ 
