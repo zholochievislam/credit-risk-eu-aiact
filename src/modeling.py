@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import joblib
+import os
 from lightgbm import LGBMClassifier
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score,average_precision_score
@@ -68,6 +70,35 @@ def train_final_model(df: pd.DataFrame, num_cols: list, cat_cols: list):
 
     return model, preprocessor
 
+
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_MODELS_DIR = os.path.join(_CURRENT_DIR, "..", "models")
+
+
+def save_model(model, preprocessor, model_path=None, preprocessor_path=None):
+    if model_path is None:
+        model_path = os.path.join(_MODELS_DIR, "final_model.joblib")
+    if preprocessor_path is None:
+        preprocessor_path = os.path.join(_MODELS_DIR, "final_preprocessor.joblib")
+
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+
+    joblib.dump(model, model_path)
+    joblib.dump(preprocessor, preprocessor_path)
+    print(f"Model saved to {model_path}")
+    print(f"Preprocessor saved to {preprocessor_path}")
+
+
+def load_final_model(model_path=None, preprocessor_path=None):
+    if model_path is None:
+        model_path = os.path.join(_MODELS_DIR, "final_model.joblib")
+    if preprocessor_path is None:
+        preprocessor_path = os.path.join(_MODELS_DIR, "final_preprocessor.joblib")
+
+    model = joblib.load(model_path)
+    preprocessor = joblib.load(preprocessor_path)
+    return model, preprocessor
+
 if __name__ == "__main__":
     filepath = "../data/raw/credit_risk_dataset.csv"
     try:
@@ -101,5 +132,7 @@ if __name__ == "__main__":
     print("\nTraining final production model (Model B) on 100% of dataset")
     final_model, final_preprocessor = train_final_model(cleaned_data, num_cols_b, cat_cols_b)
     print("Final model training finished.")
+
+    save_model(final_model, final_preprocessor)
 
 

@@ -82,3 +82,36 @@ def get_explanation(shap_values, sample_index, feature_names, X_display, reason_
         lines.append(f"- {label} (value: {real_value}) {strength} {direction} the risk score")
 
     return "\n".join(lines)
+
+FEATURE_MAPPING = {
+    "person_age": "Applicant Age",
+    "person_income": "Annual Income",
+    "person_emp_length": "Employment Length (years)",
+    "loan_amnt": "Requested Loan Amount",
+    "loan_percent_income": "Loan-to-Income Ratio",
+    "cb_person_cred_hist_length": "Credit History Length",
+    "person_home_ownership_RENT": "Home Ownership: Renting",
+    "person_home_ownership_OWN": "Home Ownership: Owned",
+    "person_home_ownership_MORTGAGE": "Home Ownership: Mortgage",
+    "loan_intent_VENTURE": "Loan Purpose: Venture",
+    "loan_intent_MEDICAL": "Loan Purpose: Medical",
+    "loan_intent_PERSONAL": "Loan Purpose: Personal",
+    "loan_intent_EDUCATION": "Loan Purpose: Education",
+    "loan_intent_HOMEIMPROVEMENT": "Loan Purpose: Home Improvement",
+    "loan_intent_DEBTCONSOLIDATION": "Loan Purpose: Debt Consolidation",
+    "cb_person_default_on_file_Y": "Historical Default: Yes",
+    "cb_person_default_on_file_N": "Historical Default: No"
+}
+
+
+def get_waterfall_figure(shap_values, feature_names, sample_index=0):
+    sample_shap = shap_values[sample_index]
+    sample_shap.feature_names = feature_names
+
+    plt.figure(figsize=(10, 6))
+    shap.plots.waterfall(sample_shap, show=False)
+    plt.title(f"Adverse Action Notice (Applicant #{sample_index})",
+              fontsize=12, fontweight='bold', pad=15)
+    plt.tight_layout()
+
+    return plt.gcf()

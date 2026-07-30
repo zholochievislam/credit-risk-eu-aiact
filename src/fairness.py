@@ -1,5 +1,7 @@
+import os
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 import json
 from sklearn.metrics import roc_curve
 from fairlearn.metrics import MetricFrame, selection_rate, true_positive_rate
@@ -105,15 +107,6 @@ def get_thresholds_per_group(y_true, y_pred_proba, sensitive_series):
 
     return thresholds
 
-def save_thresholds(thresholds: dict, filepath: str = "../models/group_thresholds.json"):
-    clean_thresholds = {k: float(v) for k, v in thresholds.items()}
-
-    with open(filepath, "w") as f:
-        json.dump(clean_thresholds, f, indent=2)
-
-    print(f"Thresholds saved to {filepath}")
-
-
 def apply_group_thresholds(y_pred_proba, sensitive_series, thresholds):
     y_pred = pd.Series(index=sensitive_series.index, dtype=int)
 
@@ -123,7 +116,29 @@ def apply_group_thresholds(y_pred_proba, sensitive_series, thresholds):
 
     return y_pred
 
-import matplotlib.pyplot as plt
+_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+_MODELS_DIR = os.path.join(_CURRENT_DIR, "..", "models")
+
+
+def save_thresholds(thresholds: dict, filepath: str = None):
+    if filepath is None:
+        filepath = os.path.join(_MODELS_DIR, "group_thresholds.json")
+
+    clean_thresholds = {k: float(v) for k, v in thresholds.items()}
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    with open(filepath, "w") as f:
+        json.dump(clean_thresholds, f, indent=2)
+
+    print(f"Thresholds saved to {filepath}")
+
+
+def load_thresholds(filepath: str = None) -> dict:
+    if filepath is None:
+        filepath = os.path.join(_MODELS_DIR, "group_thresholds.json")
+
+    with open(filepath, "r") as f:
+        return json.load(f)
 
 def plot_fairness_tradeoff(acc_before, acc_after, eod_before, eod_after, save_path=None):
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
@@ -149,3 +164,22 @@ def plot_fairness_tradeoff(acc_before, acc_after, eod_before, eod_after, save_pa
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         print(f"Trade-off plot saved to {save_path}")
     plt.show()
+
+def save_metrics(metrics: dict, filepath: str = None):
+    if filepath is None:
+        filepath = os.path.join(_MODELS_DIR, "model_metrics.json")
+
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
+    with open(filepath, "w") as f:
+        json.dump(metrics, f, indent=2)
+
+    print(f"Metrics saved to {filepath}")
+
+
+def load_metrics(filepath: str = None) -> dict:
+    if filepath is None:
+        filepath = os.path.join(_MODELS_DIR, "model_metrics.json")
+
+    with open(filepath, "r") as f:
+        return json.load(f)
