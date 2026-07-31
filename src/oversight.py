@@ -32,7 +32,10 @@ def process_new_applicant(applicant_data, final_model, final_preprocessor, group
 
     return risk_proba, decision
 
-def log_decision(applicant_data, risk_proba, decision, group_threshold, home_ownership_group, log_path="../logs/decisions_log.jsonl"):
+def log_decision(applicant_data, risk_proba, decision, group_threshold, home_ownership_group, log_path=None):
+    if log_path is None:
+        log_path = os.path.join(_LOGS_DIR, "decisions_log.jsonl")
+
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
     log_entry = {
