@@ -1,6 +1,10 @@
 # End-to-End Fair & Explainable Credit Risk Assessment System
 > **Compliance-Ready Machine Learning Pipeline for Automated Credit Decisioning**
- 
+
+**🔗 Live App:** [credit-risk-eu-aiact.streamlit.app](https://credit-risk-eu-aiact.streamlit.app/)
+
+![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
+...
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)
 ![LightGBM](https://img.shields.io/badge/LightGBM-4.0+-green?style=flat)
 ![SHAP](https://img.shields.io/badge/Explainability-SHAP-blueviolet?style=flat)
@@ -157,8 +161,6 @@ jupyter notebook notebooks/04_fairness.ipynb
 ```bash
 streamlit run app.py
 ```
-This opens the app locally at `http://localhost:8501`. *(A public deployment link will be added here once the app is deployed to Streamlit Community Cloud.)*
- 
----
- 
+This opens the app locally at `http://localhost:8501`. A live deployed version is also
+available at **[credit-risk-eu-aiact.streamlit.app](https://credit-risk-eu-aiact.streamlit.app/)**. 
 *Developed as part of an Advanced End-to-End Machine Learning Engineering Portfolio.*
